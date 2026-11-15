@@ -1,0 +1,4 @@
+{
+  "_note": "ILLUSTRATIVE ONLY / NOT AN HTTP REQUEST. The local Python predictor now accepts exactly 111 numeric engineered fields from its artifact metadata. No raw-URL feature generator or HTTP route exists; this empty feature map is invalid.",
+  "features": {}
+}

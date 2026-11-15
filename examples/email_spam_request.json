@@ -1,0 +1,6 @@
+{
+  "email_text": "Please review the attached project update.",
+  "sender_address": "updates@example.test",
+  "claimed_domain": "example.test",
+  "expected_domain": "example.test"
+}

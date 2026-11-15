@@ -1,0 +1,1014 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BLUE Engine AI Integration Contract",
+    "version": "0.1.0",
+    "description": "Email endpoints /health, /detect, /analyze-headers run on port 8000. Domain, URL and aggregation endpoints under /api/v1 run in BLUE_Engine_AI_Handoff/domain_api.py on port 8001. Email/header aggregation calls only 127.0.0.1:8000."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "IMPLEMENTED — email text-model health check",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports text-model artifact state. Header analysis operates independently."
+      }
+    },
+    "/detect": {
+      "post": {
+        "summary": "IMPLEMENTED — email phishing text detection",
+        "operationId": "detect_detect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "description": "Response score is an uncalibrated LinearSVC decision margin; domain similarity does not alter verdict. No authentication implementation was found."
+      }
+    },
+    "/analyze-headers": {
+      "post": {
+        "summary": "IMPLEMENTED — deterministic header forensics",
+        "operationId": "analyze_headers_analyze_headers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeaderForensicsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeaderForensicsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "description": "Authentication values in supplied headers are claims and are not independently verified."
+      }
+    },
+    "/api/v1/url-phishing/predict": {
+      "post": {
+        "summary": "IMPLEMENTED — legacy URL phishing from 111 engineered features",
+        "description": "Accepts only the exact feature map expected by the saved artifact. It does not accept raw URLs or generate features.",
+        "servers": [{"url": "http://localhost:8001"}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/LegacyUrlFeaturesRequest"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prediction for a validated 111-feature row; numeric score is the model's existing phishing-class output.",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LegacyUrlPrediction"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/url-phishing-v2/predict": {
+      "post": {
+        "summary": "IMPLEMENTED — experimental URL-text V2",
+        "description": "Accepts a raw HTTP(S) URL via the existing 34-feature local extractor. No URL is fetched. External evaluation found substantial false positives; not production-ready.",
+        "servers": [{"url": "http://localhost:8001"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UrlV2Request"}}}},
+        "responses": {
+          "200": {"description": "Existing V2 inference result.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UrlV2Prediction"}}}},
+          "422": {"description": "Malformed, unsupported or empty URL"},
+          "503": {"description": "Artifact or inference unavailable"}
+        }
+      }
+    },
+    "/api/v1/analyze": {
+      "post": {
+        "summary": "IMPLEMENTED — evidence aggregator",
+        "description": "Runs only models corresponding to supplied evidence. Email and header checks call the existing loopback Email service on port 8000. Partial results are preserved.",
+        "servers": [{"url": "http://localhost:8001"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AggregateRequest"}}}},
+        "responses": {
+          "200": {
+            "description": "Per-model execution states, findings, risk category and warnings.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/AggregateResponse"},
+                "example": {
+                  "analysis_status": "complete",
+                  "risk_category": "high",
+                  "risk_rule": "high if any completed model reports a phishing/DGA/typo label or header High; otherwise medium for header Medium or a lookalike-domain signal; otherwise unresolved",
+                  "per_model": {
+                    "email_text": {"status": "completed", "result": {"verdict": "phishing", "score": 1.3840412384458558, "score_kind": "linear_svm_decision_margin"}},
+                    "email_header": {"status": "not_run", "reason": "evidence_not_supplied"},
+                    "dga": {"status": "completed", "result": {"label": "legit", "score": 0.02267200820485388, "score_kind": "dga_class_probability"}},
+                    "typosquatting": {"status": "completed", "result": {"label": "NotTypo", "score": 0.14357810489570885}},
+                    "url_phishing_v2": {"status": "completed", "result": {"label": 1, "class": "phishing", "phishing_score": 1.0}},
+                    "url_phishing_legacy": {"status": "not_run", "reason": "evidence_not_supplied"}
+                  },
+                  "findings": [
+                    {"model": "email_text", "label": "phishing"},
+                    {"model": "dga", "label": "legit"},
+                    {"model": "typosquatting", "label": "NotTypo"},
+                    {"model": "url_phishing_v2", "label": "phishing"}
+                  ],
+                  "labels": [
+                    {"model": "email_text", "label": "phishing"},
+                    {"model": "dga", "label": "legit"},
+                    {"model": "typosquatting", "label": "NotTypo"},
+                    {"model": "url_phishing_v2", "label": "phishing"}
+                  ],
+                  "warnings": [
+                    "Evidence not supplied: raw_header, url_features",
+                    "URL Phishing V2 showed substantial false positives in its documented external evaluation and is not production-ready.",
+                    "Model scores have different meanings and are not averaged or compared.",
+                    "This aggregator does not assess score calibration; treat each score as model-specific output.",
+                    "Email text score is an uncalibrated LinearSVC decision margin, not a probability.",
+                    "A negative result from one detector does not establish that the input is safe."
+                  ]
+                }
+              }
+            }
+          },
+          "422": {"description": "Request body is not a JSON object"},
+          "413": {"description": "Request body exceeds 256000 bytes"}
+        }
+      }
+    },
+    "/api/v1/dga/predict": {
+      "post": {
+        "summary": "IMPLEMENTED — domain-string DGA classification",
+        "description": "Uses the existing saved DGA pipeline and threshold. Classifies a domain-like string; it is not DNS-activity analysis or proof of maliciousness.",
+        "servers": [{"url": "http://localhost:8001"}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/DomainPredictRequest"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prediction returned by the existing DGA inference function.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/DgaPrediction"}
+              }
+            }
+          },
+          "422": {"description": "Invalid domain input"},
+          "400": {"description": "Invalid JSON request body"},
+          "413": {"description": "Request body exceeds 256000 bytes"},
+          "415": {"description": "Content-Type must be application/json"},
+          "503": {"description": "Model artifact or inference unavailable"}
+        }
+      }
+    },
+    "/api/v1/domain-health": {
+      "get": {
+        "summary": "IMPLEMENTED — domain model artifact health",
+        "servers": [{"url": "http://localhost:8001"}],
+        "responses": {
+          "200": {
+            "description": "Reports whether the DGA and Typosquatting artifacts are present.",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DomainHealthResponse"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/typosquatting/predict": {
+      "post": {
+        "summary": "IMPLEMENTED — TypoDS domain classification",
+        "description": "Uses the existing saved TypoDS pipeline and threshold. This dataset-trained class prediction is not independent confirmation of maliciousness.",
+        "servers": [{"url": "http://localhost:8001"}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/DomainPredictRequest"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prediction returned by the existing Typosquatting inference function.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/TyposquattingPrediction"}
+              }
+            }
+          },
+          "422": {"description": "Invalid domain input"},
+          "400": {"description": "Invalid JSON request body"},
+          "413": {"description": "Request body exceeds 16 KiB"},
+          "415": {"description": "Content-Type must be application/json"},
+          "503": {"description": "Model artifact or inference unavailable"}
+        }
+      }
+    },
+    "/api/v1/email-spam/predict": {
+      "post": {
+        "summary": "PROPOSED / NOT IMPLEMENTED — Email spam alias",
+        "description": "PLACEHOLDER requiring approval. No route exists here; implemented phishing text route is POST /detect.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "PLACEHOLDER request schema; fields require confirmation.",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "PLACEHOLDER response schema; behavior requires approval.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "PLACEHOLDER response schema.",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/email-header/analyze": {
+      "post": {
+        "summary": "PROPOSED / NOT IMPLEMENTED — Email header alias",
+        "description": "PLACEHOLDER requiring approval. No route exists here; implemented header route is POST /analyze-headers.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "PLACEHOLDER request schema; fields require confirmation.",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "PLACEHOLDER response schema; behavior requires approval.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "PLACEHOLDER response schema.",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthenticationStatuses": {
+        "properties": {
+          "spf": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "softfail",
+              "neutral",
+              "none",
+              "temperror",
+              "permerror",
+              "unknown"
+            ],
+            "title": "Spf"
+          },
+          "dkim": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "softfail",
+              "neutral",
+              "none",
+              "temperror",
+              "permerror",
+              "unknown"
+            ],
+            "title": "Dkim"
+          },
+          "dmarc": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "softfail",
+              "neutral",
+              "none",
+              "temperror",
+              "permerror",
+              "unknown"
+            ],
+            "title": "Dmarc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "spf",
+          "dkim",
+          "dmarc"
+        ],
+        "title": "AuthenticationStatuses"
+      },
+      "DetectRequest": {
+        "properties": {
+          "email_text": {
+            "type": "string",
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Email Text"
+          },
+          "sender_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Address"
+          },
+          "claimed_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed Domain"
+          },
+          "expected_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Domain"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email_text"
+        ],
+        "title": "DetectRequest"
+      },
+      "DetectionResponse": {
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "phishing",
+              "benign"
+            ],
+            "title": "Verdict"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "score_kind": {
+            "type": "string",
+            "const": "linear_svm_decision_margin",
+            "title": "Score Kind"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "domain_similarity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DomainSimilarity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "domain_similarity_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain Similarity Reason"
+          },
+          "claimed_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed Domain"
+          },
+          "signals": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Signals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "score",
+          "score_kind",
+          "model",
+          "domain_similarity",
+          "domain_similarity_reason",
+          "claimed_domain",
+          "signals"
+        ],
+        "title": "DetectionResponse"
+      },
+      "DomainSimilarity": {
+        "properties": {
+          "sender_domain": {
+            "type": "string",
+            "title": "Sender Domain"
+          },
+          "expected_domain": {
+            "type": "string",
+            "title": "Expected Domain"
+          },
+          "similarity": {
+            "type": "number",
+            "title": "Similarity"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "exact_match",
+              "sender_is_subdomain",
+              "lookalike_candidate",
+              "unrelated"
+            ],
+            "title": "Relation"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "heuristic_threshold": {
+            "type": "number",
+            "title": "Heuristic Threshold"
+          },
+          "comparison_source": {
+            "type": "string",
+            "enum": [
+              "request_expected_domain",
+              "configured_trusted_domains"
+            ],
+            "title": "Comparison Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sender_domain",
+          "expected_domain",
+          "similarity",
+          "relation",
+          "reason",
+          "heuristic_threshold",
+          "comparison_source"
+        ],
+        "title": "DomainSimilarity"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HeaderFinding": {
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "title": "Rule Id"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "medium",
+              "high"
+            ],
+            "title": "Severity"
+          },
+          "score_contribution": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score Contribution"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule_id",
+          "severity",
+          "score_contribution",
+          "explanation"
+        ],
+        "title": "HeaderFinding"
+      },
+      "HeaderForensicsRequest": {
+        "properties": {
+          "raw_header": {
+            "type": "string",
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Raw Header"
+          },
+          "expected_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Domain"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "raw_header"
+        ],
+        "title": "HeaderForensicsRequest"
+      },
+      "HeaderForensicsResponse": {
+        "properties": {
+          "from_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Address"
+          },
+          "from_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Domain"
+          },
+          "reply_to_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply To Address"
+          },
+          "reply_to_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply To Domain"
+          },
+          "sender_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Address"
+          },
+          "sender_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Domain"
+          },
+          "return_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Path"
+          },
+          "return_path_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Path Domain"
+          },
+          "authentication": {
+            "$ref": "#/components/schemas/AuthenticationStatuses"
+          },
+          "authentication_sources": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Authentication Sources"
+          },
+          "threat_score": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Threat Score"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": [
+              "Low",
+              "Medium",
+              "High"
+            ],
+            "title": "Risk Level"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/HeaderFinding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "domain_similarity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DomainSimilarity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "domain_similarity_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain Similarity Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_address",
+          "from_domain",
+          "reply_to_address",
+          "reply_to_domain",
+          "sender_address",
+          "sender_domain",
+          "return_path",
+          "return_path_domain",
+          "authentication",
+          "authentication_sources",
+          "threat_score",
+          "risk_level",
+          "findings",
+          "recommendations",
+          "limitations",
+          "domain_similarity",
+          "domain_similarity_reason"
+        ],
+        "title": "HeaderForensicsResponse"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status"
+          },
+          "model_loaded": {
+            "type": "boolean",
+            "title": "Model Loaded"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "model_error": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "artifact_missing",
+                  "artifact_invalid",
+                  "model_load_failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "model_loaded",
+          "model",
+          "model_error"
+        ],
+        "title": "HealthResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "DomainPredictRequest": {
+        "type": "object",
+        "properties": {"domain": {"type": "string", "minLength": 1}},
+        "required": ["domain"],
+        "additionalProperties": false
+      },
+      "LegacyUrlFeaturesRequest": {
+        "type": "object",
+        "properties": {"features": {"type": "object", "description": "Exactly 111 artifact feature names; values are numbers or null."}},
+        "required": ["features"],
+        "additionalProperties": false
+      },
+      "LegacyUrlPrediction": {
+        "type": "object",
+        "properties": {
+          "prediction": {"type": "integer"}, "label": {"type": "string"},
+          "score": {"type": ["number", "null"]}, "score_kind": {"type": ["string", "null"]},
+          "model_name": {"type": "string"}, "input_kind": {"type": "string"},
+          "interpretation": {"type": "string"}
+        },
+        "required": ["prediction", "label", "score", "score_kind", "model_name", "input_kind", "interpretation"]
+      },
+      "UrlV2Request": {
+        "type": "object", "properties": {"url": {"type": "string", "minLength": 1}},
+        "required": ["url"], "additionalProperties": false
+      },
+      "UrlV2Prediction": {
+        "type": "object",
+        "properties": {
+          "label": {"type": "integer", "enum": [0, 1]},
+          "class": {"type": "string", "enum": ["phishing", "legitimate"]},
+          "phishing_score": {"type": "number", "minimum": 0, "maximum": 1},
+          "schema_version": {"type": "string"}
+        },
+        "required": ["label", "class", "phishing_score", "schema_version"],
+        "additionalProperties": false
+      },
+      "AggregateRequest": {
+        "type": "object",
+        "properties": {
+          "url": {"type": "string"}, "url_features": {"type": "object"},
+          "domain": {"type": "string"}, "email_text": {"type": "string"},
+          "raw_header": {"type": "string"}, "sender_address": {"type": "string"},
+          "claimed_domain": {"type": "string"}, "expected_domain": {"type": "string"}
+        },
+        "additionalProperties": false,
+        "description": "Supply any supported evidence fields. url is raw input for V2; url_features is the legacy 111-field feature map."
+      },
+      "AggregateResponse": {
+        "type": "object",
+        "properties": {
+          "analysis_status": {"type": "string", "enum": ["complete", "partial", "unavailable", "not_assessed"]},
+          "risk_category": {"type": "string", "enum": ["high", "medium", "unresolved"]},
+          "risk_rule": {"type": "string"}, "per_model": {"type": "object"},
+          "findings": {"type": "array", "items": {"type": "object"}},
+          "labels": {"type": "array", "items": {"type": "object"}},
+          "warnings": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["analysis_status", "risk_category", "risk_rule", "per_model", "findings", "labels", "warnings"]
+      },
+      "DomainHealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string", "enum": ["ok", "degraded"]},
+          "components": {
+            "type": "object",
+            "properties": {"dga": {"type": "boolean"}, "typosquatting": {"type": "boolean"}},
+            "required": ["dga", "typosquatting"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["status", "components"],
+        "additionalProperties": false
+      },
+      "DgaPrediction": {
+        "type": "object",
+        "properties": {
+          "input": {"type": "string"}, "normalized_domain": {"type": "string"},
+          "prediction": {"type": "integer", "enum": [0, 1]}, "label": {"type": "string", "enum": ["legit", "dga"]},
+          "score": {"type": "number", "minimum": 0, "maximum": 1},
+          "score_kind": {"type": "string", "const": "dga_class_probability"},
+          "threshold": {"type": "number"}, "model_name": {"type": "string"}, "interpretation": {"type": "string"}
+        },
+        "required": ["input", "normalized_domain", "prediction", "label", "score", "score_kind", "threshold", "model_name", "interpretation"],
+        "additionalProperties": false
+      },
+      "TyposquattingPrediction": {
+        "type": "object",
+        "properties": {
+          "input": {"type": "string"}, "normalized_domain": {"type": "string"},
+          "prediction": {"type": "integer", "enum": [0, 1]}, "label": {"type": "string"},
+          "score": {"type": "number", "minimum": 0, "maximum": 1},
+          "threshold": {"type": "number"}, "model_name": {"type": "string"}, "interpretation": {"type": "string"}
+        },
+        "required": ["input", "normalized_domain", "prediction", "label", "score", "threshold", "model_name", "interpretation"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000"
+    }
+  ]
+}

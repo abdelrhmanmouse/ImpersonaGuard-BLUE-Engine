@@ -1,0 +1,363 @@
+{
+  "audit_date": "2026-10-24",
+  "scope": [
+    "URL Phishing Detection",
+    "DGA Detection",
+    "Typosquatting Detection",
+    "Email Spam Detection",
+    "Email Header Forensics"
+  ],
+  "excluded_scope": [
+    "Login Anomaly Detection"
+  ],
+  "inventory_note": "Relative paths are rooted at project root. Notebook source cells were inspected separately from outputs. Associations are supported by path/content descriptions.",
+  "candidates": [
+    {
+      "model": "Email Spam Detection",
+      "rank": 1,
+      "rationale": "Implemented FastAPI route, serialized baseline, metadata, tests and evaluation reports; internal-only validation caveats."
+    },
+    {
+      "model": "Typosquatting Detection",
+      "rank": 2,
+      "rationale": "Existing model artifact/wrapper runtime tested; distinct brand-similarity rules are available as Python interface."
+    },
+    {
+      "model": "Email Header Forensics",
+      "rank": 3,
+      "rationale": "Implemented deterministic route and focused tests; no trained predictive model."
+    },
+    {
+      "model": "URL Phishing Detection",
+      "rank": 4,
+      "rationale": "Locally fitted Random Forest feature-row baseline and inference function now exist; raw-URL feature generation, API route, and source data rights remain unresolved."
+    },
+    {
+      "model": "DGA Detection",
+      "rank": 5,
+      "rationale": "Locally fitted notebook ML pipeline and inference function now exist; no API, provenance confirmation, or accuracy validation."
+    }
+  ],
+  "files": [
+    {
+      "path": "ImpersonaGuard_n.ipynb",
+      "type": "notebook",
+      "models": [
+        "URL Phishing Detection"
+      ],
+      "evidence": "Cells define numeric feature training, stratified split and classifier comparison; saved outputs include accuracy."
+    },
+    {
+      "path": "ImpersonaGuard_URL_Train_Test_Accuracy_Comparison.ipynb",
+      "type": "notebook",
+      "models": [
+        "URL Phishing Detection"
+      ],
+      "evidence": "Duplicate URL classifier experiment content."
+    },
+    {
+      "path": "git/URL Phishing Detection/ImpersonaGuard_URL_Phishing_Report_EN.ipynb",
+      "type": "notebook",
+      "models": [
+        "URL Phishing Detection"
+      ],
+      "evidence": "URL feature classifier training and historical outputs."
+    },
+    {
+      "path": "git/URL Phishing Detection/dataset_full.csv",
+      "type": "csv",
+      "models": [
+        "URL Phishing Detection"
+      ],
+      "evidence": "Notebook's expected dataset; phishing target and numeric features."
+    },
+    {
+      "path": "Domain Similarity/ImpersonaGuard_Domain_Similarity_Experiments.ipynb",
+      "type": "notebook",
+      "models": [
+        "DGA Detection",
+        "Typosquatting Detection"
+      ],
+      "evidence": "DGA/legit rule-ML-hybrid experiment; optional typo rule and saved typo model loading cells."
+    },
+    {
+      "path": "1_Raw_Domain_Dataset_labeled.csv",
+      "type": "csv",
+      "models": [
+        "DGA Detection"
+      ],
+      "evidence": "Notebook loads Domain and class, labels dga/legit."
+    },
+    {
+      "path": "typosquatting_domain_model.py",
+      "type": "python",
+      "models": [
+        "Typosquatting Detection"
+      ],
+      "evidence": "Normalization, artifact loading, predict_one/predict_many."
+    },
+    {
+      "path": "typosquatting_detector.py",
+      "type": "python",
+      "models": [
+        "Typosquatting Detection"
+      ],
+      "evidence": "TyposquattingDetector deterministic brand similarity with edit/confusable/suspicious-token rules; tldextract configured not to refresh over network."
+    },
+    {
+      "path": "artifacts/typosquatting_experiment/typods_dataset_ts/final_model.joblib",
+      "type": "joblib artifact",
+      "models": [
+        "Typosquatting Detection"
+      ],
+      "evidence": "Loaded by TyposquattingDomainClassifier."
+    },
+    {
+      "path": "artifacts/typosquatting_experiment/typods_dataset_ts/experiment_metadata.json",
+      "type": "json metadata",
+      "models": [
+        "Typosquatting Detection"
+      ],
+      "evidence": "Dataset, split, model selection, versions and reload verification."
+    },
+    {
+      "path": "artifacts/typosquatting_experiment/typods_dataset_ts/threshold_tuning.json",
+      "type": "json metrics",
+      "models": [
+        "Typosquatting Detection"
+      ],
+      "evidence": "Current frozen-threshold validation and test results."
+    },
+    {
+      "path": "artifacts/typosquatting_experiment/typods_dataset_ts/test_predictions.csv",
+      "type": "csv predictions",
+      "models": [
+        "Typosquatting Detection"
+      ],
+      "evidence": "Saved held-out prediction rows."
+    },
+    {
+      "path": "git/Email Detection/src/email_detection/api.py",
+      "type": "python",
+      "models": [
+        "Email Spam Detection",
+        "Email Header Forensics"
+      ],
+      "evidence": "Implements /health, /detect and /analyze-headers with Pydantic schemas."
+    },
+    {
+      "path": "git/Email Detection/src/email_detection/models.py",
+      "type": "python",
+      "models": [
+        "Email Spam Detection"
+      ],
+      "evidence": "TF-IDF configurations and logistic/SVM/NB pipeline builders."
+    },
+    {
+      "path": "git/Email Detection/src/email_detection/header_forensics.py",
+      "type": "python",
+      "models": [
+        "Email Header Forensics"
+      ],
+      "evidence": "Header parsing, auth status extraction and heuristic scoring."
+    },
+    {
+      "path": "git/Email Detection/artifacts/best_baseline.joblib",
+      "type": "joblib artifact",
+      "models": [
+        "Email Spam Detection"
+      ],
+      "evidence": "Default model artifact loaded by API."
+    },
+    {
+      "path": "git/Email Detection/artifacts/best_model_metadata.json",
+      "type": "json metadata",
+      "models": [
+        "Email Spam Detection"
+      ],
+      "evidence": "Linear SVM, threshold and label map."
+    },
+    {
+      "path": "git/Email Detection/reports/baseline_comparison.csv",
+      "type": "csv metrics",
+      "models": [
+        "Email Spam Detection"
+      ],
+      "evidence": "Validation thresholds and held-out test metrics by baseline."
+    },
+    {
+      "path": "git/Email Detection/reports/validation_results.json",
+      "type": "json metrics",
+      "models": [
+        "Email Spam Detection"
+      ],
+      "evidence": "Splits, versions, vectorizer, candidates and validation thresholds."
+    },
+    {
+      "path": "git/Email Detection/tests/test_api.py",
+      "type": "python tests",
+      "models": [
+        "Email Spam Detection"
+      ],
+      "evidence": "API schema, response, validation and artifact failure tests."
+    },
+    {
+      "path": "git/Email Detection/tests/test_header_forensics_api.py",
+      "type": "python tests",
+      "models": [
+        "Email Header Forensics"
+      ],
+      "evidence": "Route, response schema and validation tests."
+    },
+    {
+      "path": "Email Header Forensics/README.md",
+      "type": "markdown",
+      "models": [
+        "Email Header Forensics"
+      ],
+      "evidence": "Documents parser, heuristic limits, endpoint and sample request."
+    },
+    {
+      "path": "requirements.txt",
+      "type": "requirements",
+      "models": [
+        "Typosquatting Detection",
+        "DGA Detection"
+      ],
+      "evidence": "Root Typosquatting/domain-similarity dependencies; email and DGA/URL dependencies documented separately."
+    },
+    {
+      "path": "git/Email Detection/requirements.txt",
+      "type": "requirements",
+      "models": [
+        "Email Spam Detection",
+        "Email Header Forensics"
+      ],
+      "evidence": "Declares email service runtime package ranges."
+    },
+    {
+      "path": "impersonaguard_domain_results/method_comparison.csv",
+      "type": "csv metrics",
+      "models": [
+        "DGA Detection"
+      ],
+      "evidence": "Written by Domain Similarity notebook cell 27; three method rows of test metrics. No run id/hash."
+    },
+    {
+      "path": "impersonaguard_domain_results/test_predictions.csv",
+      "type": "csv predictions",
+      "models": [
+        "DGA Detection"
+      ],
+      "evidence": "Written by notebook cell 27; 20,089 saved test rows; confusion matrices recomputed from actual/prediction columns."
+    },
+    {
+      "path": "impersonaguard_domain_results/manual_10_domain_predictions.csv",
+      "type": "csv illustrative predictions",
+      "models": [
+        "DGA Detection"
+      ],
+      "evidence": "Written by notebook cell 27; unlabeled manual domains, not evaluation data."
+    },
+    {
+      "path": "url_phishing_inference.py",
+      "type": "python inference",
+      "models": [
+        "URL Phishing Detection"
+      ],
+      "evidence": "Validates exact 111-feature mapping and loads serialized median-imputer/Random Forest pipeline; does not accept raw URLs."
+    },
+    {
+      "path": "scripts/train_url_phishing_feature_model.py",
+      "type": "python training/build script",
+      "models": [
+        "URL Phishing Detection"
+      ],
+      "evidence": "Reproduces deduplication, numeric features, stratified 80/20 split and fits only training split."
+    },
+    {
+      "path": "artifacts/url_phishing_inference/url_phishing_model.joblib",
+      "type": "joblib artifact",
+      "models": [
+        "URL Phishing Detection"
+      ],
+      "evidence": "Generated 2026-10-24 from original training split; includes preprocessing, model and metadata; test rows not fitted."
+    },
+    {
+      "path": "dga_domain_model.py",
+      "type": "python inference",
+      "models": [
+        "DGA Detection"
+      ],
+      "evidence": "Loads serialized char-TF-IDF/Logistic Regression pipeline; domain-string input; not DNS telemetry."
+    },
+    {
+      "path": "scripts/train_dga_domain_model.py",
+      "type": "python training/build script",
+      "models": [
+        "DGA Detection"
+      ],
+      "evidence": "Reproduces notebook normalization and stratified 70/15/15 split; fits only training split."
+    },
+    {
+      "path": "artifacts/dga_domain_inference/dga_domain_model.joblib",
+      "type": "joblib artifact",
+      "models": [
+        "DGA Detection"
+      ],
+      "evidence": "Generated 2026-10-24 from notebook training split; includes fitted preprocessing, model and metadata."
+    },
+    {
+      "path": "tests/test_inference_components.py",
+      "type": "Python unittest",
+      "models": [
+        "Domain Similarity",
+        "Typosquatting Detection",
+        "DGA Detection",
+        "URL Phishing Detection"
+      ],
+      "evidence": "Five runtime tests cover artifact loading, saved typo parity, new inputs and invalid input/schema paths."
+    },
+    {
+      "path": "BLUE_Engine_AI_Handoff/requirements-domain-inference.txt",
+      "type": "requirements",
+      "models": [
+        "Domain Similarity",
+        "Typosquatting Detection",
+        "DGA Detection",
+        "URL Phishing Detection"
+      ],
+      "evidence": "Exact dependencies observed in local Python 3.11.1 inference/training run; clean offline install not possible from available wheel cache."
+    },
+    {
+      "path": ".gitignore",
+      "type": "git ignore rules",
+      "models": [
+        "URL Phishing Detection",
+        "DGA Detection",
+        "Typosquatting Detection",
+        "Email Spam Detection"
+      ],
+      "evidence": "Excludes generated model artifacts, local datasets, caches, environments, secrets, and archives from accidental inclusion."
+    },
+    {
+      "path": "tests/test_handoff_contract.py",
+      "type": "Python unittest",
+      "models": [
+        "Email Spam Detection",
+        "Email Header Forensics"
+      ],
+      "evidence": "Checks contract method/schema parity against the actual FastAPI app and labels proposed routes; three tests passed."
+    }
+  ],
+  "unresolved_questions": [
+    "URL raw-URL-to-111-feature generation, external-field policies, source data rights, and API contract are missing.",
+    "DGA source dataset provenance/license is unknown; only domain-string prediction is implemented, not DNS telemetry.",
+    "Typosquatting data/artifact delivery and data rights need approval before GitHub inclusion.",
+    "Email fitted artifacts are ignored; the existing pinned downloader/build workflow can recreate them after license verification and network access.",
+    "Clean dependency installation was not verified; the isolated offline install failed because required wheels were unavailable locally.",
+    "The workspace has no .git directory; intended GitHub contents/tracking cannot be verified.",
+    "A formal OpenAPI validator is unavailable; YAML syntax and implemented schema parity were checked."
+  ],
+  "yaml_openapi_validation": "PyYAML safe_load passed; implemented component schemas match FastAPI-generated schemas. Formal OpenAPI semantic validation NOT VERIFIED because no OpenAPI validator is installed."
+}

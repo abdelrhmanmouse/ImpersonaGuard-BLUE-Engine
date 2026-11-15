@@ -1,0 +1,4 @@
+{
+  "raw_header": "From: Example Support <support@example.test>\r\nAuthentication-Results: mx.example.test; spf=pass; dkim=pass; dmarc=pass\r\n",
+  "expected_domain": "example.test"
+}

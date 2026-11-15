@@ -1,0 +1,8 @@
+# Exact package versions used for the local Python 3.11.1 DGA and URL-feature
+# artifact build and inference checks. This was not validated by a clean install.
+numpy==2.4.6
+pandas==3.0.6
+scikit-learn==1.9.1
+scipy==1.17.1
+joblib==1.6.0
+tldextract==5.4.0
